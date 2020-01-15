@@ -1,0 +1,464 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+
+```{r}
+library(tidyverse)
+library(janitor)
+library(lubridate)
+library(tidycensus)
+library(fst)
+```
+
+
+PART 1 --- GET ACS DATA
+
+
+```{r}
+census_api_key("2ce05dbf2fa6fb1131a28747d83bf6b622709f54", install = TRUE)
+readRenviron("~/.Renviron")
+# check API key 
+Sys.getenv("CENSUS_API_KEY")
+```
+
+ ACS geographies
+ https://stackoverflow.com/questions/47537581/tidycensusget-acs-geography-options
+ 
+ Census reporter
+ https://censusreporter.org/profiles/14000US36047080800-census-tract-808-kings-ny/
+ 
+```{r}
+v15 <- load_variables(2010, "acs5", cache = TRUE)
+```
+ 
+
+https://www.socialexplorer.com/data/ACS2013_5yr/metadata/?ds=ACS13_5yr&var=B17001002 
+
+
+B01003_001 -- Total B01003. Total Population
+
+B06009_002 -- Less than high school graduate
+
+B06009_001 -- Education total
+
+B17001_001 -- Universe: Population for whom poverty status Is determined
+
+B17001_002 -- Income in the Past 12 Months Below Poverty Level:
+
+
+ 
+```{r}
+new_york_2017 <- get_acs(geography = "tract",
+                       variables = c(tot_population = "B01003_001",
+                                     pov_base = "B17001_001",
+                                     pov_below = "B17001_002",
+                                     edu_total = "B06009_001",
+                                     less_dipl = "B06009_002"),                                     
+                       state = "NY",
+                       year = 2017) %>% 
+  mutate ("year" = 2017) %>% 
+  select(- moe) %>% 
+  spread(key = variable, value = estimate) 
+```
+
+
+
+```{r}
+new_york_2010 <- get_acs(geography = "tract",
+                       variables = c(tot_population = "B01003_001",
+                                     pov_base = "B17001_001",
+                                     pov_below = "B17001_002",
+                                     edu_total = "B06009_001",
+                                     less_dipl = "B06009_002"),                                     
+                       state = "NY",
+                       year = 2010) %>% 
+  mutate ("year" = 2010) %>% 
+  select(- moe) %>% 
+  spread(key = variable, value = estimate) 
+```
+
+
+
+```{r}
+new_york_2011 <- get_acs(geography = "tract",
+                       variables = c(tot_population = "B01003_001",
+                                     pov_base = "B17001_001",
+                                     pov_below = "B17001_002",
+                                     edu_total = "B06009_001",
+                                     less_dipl = "B06009_002"),                                     
+                       state = "NY",
+                       year = 2011) %>% 
+  mutate ("year" = 2011) %>% 
+  select(- moe) %>% 
+  spread(key = variable, value = estimate) 
+```
+
+
+
+```{r}
+new_york_2012 <- get_acs(geography = "tract",
+                       variables = c(tot_population = "B01003_001",
+                                     pov_base = "B17001_001",
+                                     pov_below = "B17001_002",
+                                     edu_total = "B06009_001",
+                                     less_dipl = "B06009_002"),                                     
+                       state = "NY",
+                       year = 2012) %>% 
+  mutate ("year" = 2012) %>% 
+  select(- moe) %>% 
+  spread(key = variable, value = estimate) 
+```
+
+
+```{r}
+new_york_2013 <- get_acs(geography = "tract",
+                       variables = c(tot_population = "B01003_001",
+                                     pov_base = "B17001_001",
+                                     pov_below = "B17001_002",
+                                     edu_total = "B06009_001",
+                                     less_dipl = "B06009_002"),                                     
+                       state = "NY",
+                       year = 2013) %>% 
+  mutate ("year" = 2013) %>% 
+  select(- moe) %>% 
+  spread(key = variable, value = estimate) 
+```
+
+
+```{r}
+new_york_2014 <- get_acs(geography = "tract",
+                       variables = c(tot_population = "B01003_001",
+                                     pov_base = "B17001_001",
+                                     pov_below = "B17001_002",
+                                     edu_total = "B06009_001",
+                                     less_dipl = "B06009_002"),                                     
+                       state = "NY",
+                       year = 2014) %>% 
+  mutate ("year" = 2014) %>% 
+  select(- moe) %>% 
+  spread(key = variable, value = estimate) 
+```
+
+
+```{r}
+new_york_2015 <- get_acs(geography = "tract",
+                       variables = c(tot_population = "B01003_001",
+                                     pov_base = "B17001_001",
+                                     pov_below = "B17001_002",
+                                     edu_total = "B06009_001",
+                                     less_dipl = "B06009_002"),                                     
+                       state = "NY",
+                       year = 2015) %>% 
+  mutate ("year" = 2015) %>% 
+  select(- moe) %>% 
+  spread(key = variable, value = estimate) 
+```
+
+```{r}
+new_york_2016 <- get_acs(geography = "tract",
+                       variables = c(tot_population = "B01003_001",
+                                     pov_base = "B17001_001",
+                                     pov_below = "B17001_002",
+                                     edu_total = "B06009_001",
+                                     less_dipl = "B06009_002"),                                     
+                       state = "NY",
+                       year = 2016) %>% 
+  mutate ("year" = 2016) %>% 
+  select(- moe) %>% 
+  spread(key = variable, value = estimate) 
+```
+
+
+
+
+
+
+
+BIND ALL YEARS TOGETHER
+
+
+```{r}
+all_ny <- bind_rows(new_york_2010,
+                    new_york_2011,
+                    new_york_2012,
+                    new_york_2013,
+                    new_york_2014,
+                    new_york_2015,
+                    new_york_2016,
+                    new_york_2017) 
+
+```
+
+
+DETERMINE RATES
+
+```{r}
+rates <- all_ny %>% 
+  mutate(dipl_rate = (less_dipl/edu_total)*100, 
+         below_pover = (pov_below/pov_base)*100) 
+  
+```
+
+
+FILTER ONLY NYC COUNTIES
+
+```{r}
+filtered_bronx <- rates %>% 
+    filter(grepl("Bronx County", NAME))
+
+filtered_man <- rates %>% 
+    filter(grepl("New York County", NAME))
+
+
+filtered_king <- rates %>% 
+    filter(grepl("Kings County", NAME))
+
+filtered_queen <- rates %>% 
+    filter(grepl("Queens County", NAME))
+
+filtered_rich <- rates %>% 
+    filter(grepl("Richmond County", NAME))
+
+```
+
+
+
+```{r}
+all_counties <- bind_rows(filtered_bronx, 
+                          filtered_man, 
+                          filtered_king, 
+                          filtered_queen, 
+                          filtered_rich) %>% 
+  select(year, GEOID, NAME, dipl_rate, below_pover, tot_population)%>% 
+  
+  filter(!is.na(dipl_rate), !is.na(below_pover)) 
+
+
+head(all_counties)
+```
+
+
+
+```{r}
+all_counties <- all_counties %>% 
+separate("NAME", into = c("tract", "county", "state"), sep = ",")
+
+head(all_counties)
+```
+
+
+```{r}
+all_counties_1 <- all_counties %>% 
+mutate(boro_code = case_when(county == " New York County" ~ "3",
+                             county == " Bronx County" ~ "1",
+                             county == " Kings County" ~ "2",
+                             county == " Queens County" ~ "4",
+                             county == " Richmond County" ~ "5"))
+
+head(all_counties_1)
+```
+
+```{r}
+all_counties_1 <- all_counties_1 %>% 
+unite(tract_boro, tract, boro_code, sep = "_")
+
+head(all_counties_1)
+```
+
+PART 2 --- READ IN SBA FILE
+
+```{r}
+sba <- read_csv("C:/Users/aslop/Desktop/SPRING 2019/Supervised and Unsupervised Machine Learning/FINAL Project/Papers for Research/sba.csv")
+```
+
+
+```{r}
+new_1 = cols(
+  STATEFP10 = col_integer(),
+  COUNTYFP10 = col_integer(),
+  TRACTCE10 = col_integer(),
+  geoid = col_double(),
+  tract_disp = col_double(),
+  tract_name = col_character(),
+  PUMACE10 = col_integer(),
+  puma_name = col_character(),
+  newboro = col_integer(),
+  puma = col_integer(),
+  sba = col_integer(),
+  cntytrct = col_integer(),
+  borotrct = col_integer()
+)
+```
+
+```{r}
+sba <- str_glue("C:/Users/aslop/Desktop/SPRING 2019/Supervised and Unsupervised Machine Learning/FINAL Project/Papers for Research/sba.csv") %>% 
+  read_csv(col_types = new_1) %>% 
+  clean_names()
+```
+
+
+```{r}
+sba <- sba %>% 
+select(tract_disp, tract_name, sba, newboro, puma_name, puma, geoid)
+
+head(sba)
+```
+
+```{r}
+sba_1 <- sba %>% 
+unite(tract_boro, tract_name, newboro, sep = "_", remove = FALSE)
+
+sba_1$geoid <- as.character(as.numeric(sba_1$geoid))
+```
+
+
+```{r}
+table <- left_join(sba_1, all_counties_1, c("geoid" = "GEOID"))
+
+table <- table %>% 
+select(year, sba, dipl_rate, below_pover, tot_population, everything()) %>% 
+  filter(!is.na(dipl_rate))
+
+head(table)
+```
+
+```{r}
+table_1 <- table %>% 
+group_by(year, newboro, sba, puma) %>% 
+summarise(nodipl_rate = mean(dipl_rate), below_pover = mean(below_pover), population = sum(tot_population))
+
+head(table_1)
+```
+
+
+STEP 3 --- READ IN RECYCLING DATA
+
+
+```{r}
+data <- read_csv("C:/Users/aslop/Documents/CLASSES/FALL 2018/Spatial Analysis and Visualisation/project -- due Dec 10/data/month_ton.csv")
+```
+
+
+```{r}
+new = cols(
+  MONTH = col_character(),
+  BOROUGH = col_character(),
+  COMMUNITYDISTRICT = col_character(),
+  REFUSETONSCOLLECTED = col_double(),
+  PAPERTONSCOLLECTED = col_double(),
+  MGPTONSCOLLECTED = col_double(),
+  RESORGANICSTONS = col_character(),
+  SCHOOLORGANICTONS = col_character(),
+  LEAVESORGANICTONS = col_double(),
+  XMASTREETONS = col_double(),
+  BOROUGH_ID = col_integer()
+)
+```
+
+```{r}
+data <- str_glue("C:/Users/aslop/Documents/CLASSES/FALL 2018/Spatial Analysis and Visualisation/project -- due Dec 10/data/month_ton.csv") %>% 
+  read_csv(col_types = new) %>% 
+  clean_names()
+
+
+data$resorganicstons <- as.numeric(as.character(data$resorganicstons))
+data$schoolorganictons <- as.numeric(as.character(data$schoolorganictons))
+
+# convert "NA" to 0
+
+data$resorganicstons <- data$resorganicstons %>% replace_na(0)
+data$schoolorganictons <- data$schoolorganictons %>% replace_na(0)
+data$leavesorganictons <- data$leavesorganictons %>% replace_na(0)
+data$xmastreetons <- data$xmastreetons %>% replace_na(0)
+data$mgptonscollected  <- data$mgptonscollected  %>% replace_na(0)
+data$papertonscollected  <- data$papertonscollected  %>% replace_na(0)
+```
+
+```{r}
+data_1 <- data %>% 
+  separate(col = "month", into = c("year", "month"), sep = "/ ") %>% 
+   mutate(year = str_trim(year, side = "both"))  %>% 
+   filter(year >= 2010 & year <= 2017) %>% 
+   arrange(desc(year)) %>% 
+   mutate(borough_id = str_trim(borough_id, side = "both")) %>%
+   mutate(communitydistrict = str_trim(communitydistrict, side = "both")) %>% 
+   mutate(boroughcd = str_c(borough_id, communitydistrict)) %>% 
+#   mutate(year_month = make_date(year, month)) %>% 
+   select(year, borough, borough_id, communitydistrict, boroughcd, everything()) 
+```
+
+
+
+```{r}
+data_2 <- data_1 %>% 
+  group_by(year, borough, boroughcd) %>% 
+  summarise(refuse = sum(refusetonscollected),
+          paper = sum(papertonscollected),
+          mgp = sum(mgptonscollected),
+          org = sum(resorganicstons),
+          school = sum(schoolorganictons),
+          leaves = sum(leavesorganictons),
+          trees = sum(xmastreetons)) %>% 
+  unite(borocd_year, year, boroughcd) %>% 
+  write_csv("C:/Users/aslop/Desktop/SPRING 2019/Supervised and Unsupervised Machine Learning/FINAL Project/Papers for Research/data_2_to_clean.csv")
+
+head(data_2)
+```
+
+```{r}
+data_2_done <- read_csv("C:/Users/aslop/Desktop/SPRING 2019/Supervised and Unsupervised Machine Learning/FINAL Project/Papers for Research/data_2_done.csv")
+```
+
+
+
+
+
+
+```{r}
+boro_cd <- read_csv("C:/Users/aslop/Desktop/SPRING 2019/Supervised and Unsupervised Machine Learning/FINAL Project/Papers for Research/puma_cd.csv")
+
+
+head(boro_cd, 2)
+```
+
+```{r}
+table_2 <- left_join(table_1, boro_cd, c("puma" = "puma")) %>% 
+  filter (! duplicated(puma))
+
+# table_2 <- table_2 %>% 
+# filter(cd != 201, cd != 203, cd != 101, cd != 104)
+
+table_2$cd <- as.character(as.numeric(table_2$cd))
+
+table_2 <- table_2 %>% 
+  unite(borocd_year, year, cd)
+ 
+head(table_2)
+```
+
+
+
+```{r}
+table_3 <- left_join(table_2, data_2_done, c("borocd_year" = "borocd_year")) 
+
+head(table_3)
+```
+
+
+```{r}
+table_3 <- table_3 %>% 
+mutate(all_recycle = paper + mgp + org + school + leaves + trees, 
+       recycle_person = all_recycle/population,
+       refuse_person = refuse/population,
+       diversion_rate_total = (all_recycle/refuse)*100)
+
+head(table_3)
+
+
+table_3 %>% 
+  write_fst("C:/Users/aslop/Desktop/SPRING 2019/Supervised and Unsupervised Machine Learning/FINAL Project/Papers for Research/table_3_final.fst") %>% 
+  write_csv("C:/Users/aslop/Desktop/SPRING 2019/Supervised and Unsupervised Machine Learning/FINAL Project/Papers for Research/table_3_final.csv")
+```
+

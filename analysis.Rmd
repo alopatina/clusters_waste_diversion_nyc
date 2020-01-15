@@ -1,0 +1,299 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+A sample of 55 pumas in New York City for 2010 - 2017 containing information on waste diversion rate, percent of people with no high school diploma, and percent of people below poverty rate.
+
+```{r}
+library(tidyverse)
+require(foreign)
+require(cluster)
+require(factoextra)
+require(cluster)
+require(mclust)
+require(lcmm)
+library(flexmix)
+```
+
+
+
+```{r}
+table_3 <- read_fst("C:/Users/aslop/Desktop/SPRING 2019/Supervised and Unsupervised Machine Learning/FINAL Project/Papers for Research/table_3_final.fst")
+
+table_3 <- table_3 %>% 
+  separate(col = "borocd_year", into = c("year", "boro"), sep = "_", remove = FALSE) %>% 
+  select(borocd_year, year, boro, borough, newboro, sba, puma, nodipl_rate, below_pover, diversion_rate_total, everything())
+
+table_3$year <- as.numeric(as.character(table_3$year))
+
+table_3 <- table_3 %>%
+  mutate(diversion_stdz = as.numeric(scale(diversion_rate_total)),
+         nodipl_stdz = as.numeric(scale(nodipl_rate)),
+         poverty_stdz = as.numeric(scale(below_pover)))
+  
+  
+
+table_3 %>% write_fst("C:/Users/aslop/Desktop/SPRING 2019/Supervised and Unsupervised Machine Learning/FINAL Project/Papers for Research/Final data sets/table_3_long.fst") %>% 
+  write.dta("C:/Users/aslop/Desktop/SPRING 2019/Supervised and Unsupervised Machine Learning/FINAL Project/Papers for Research/Final data sets/table_3_long.dta")
+
+head(table_3)
+```
+
+```{r}
+table_4 <- table_3 %>% 
+  mutate(num = "Y") %>% 
+  unite(var_year, num, year, sep ="") %>% 
+  select(var_year, puma, nodipl_rate, below_pover, diversion_rate_total, everything())
+
+
+head(table_4)
+```
+
+
+```{r}
+table_5 <- table_4 %>% 
+  select(var_year, puma, diversion_rate_total) %>% 
+  spread(key = var_year, value = diversion_rate_total) %>% 
+  mutate(X1 = 1, X2 =2, X3 = 3, X4 = 4, X5 = 5, X6 = 6, X7 = 7, X8 = 8)
+
+head(table_5)
+```
+
+
+```{r}
+table_nodipl <- table_4 %>% 
+  select(var_year, puma, nodipl_rate) %>% 
+  spread(key = var_year, value = nodipl_rate) %>% 
+  rename(nd0 = Y2010, nd1 = Y2011, nd2 = Y2012, nd3 = Y2013, nd4 = Y2014, nd5 = Y2015,
+         nd6 = Y2016, nd7 = Y2017)
+
+
+head(table_nodipl)
+```
+
+
+```{r}
+table_poverty <- table_4 %>% 
+  select(var_year, puma, below_pover) %>% 
+  spread(key = var_year, value = below_pover) %>% 
+  rename(bp0 = Y2010, bp1 = Y2011, bp2 = Y2012, bp3 = Y2013, bp4 = Y2014, bp5 = Y2015,
+         bp6 = Y2016, bp7 = Y2017)
+
+
+head(table_poverty)
+```
+
+```{r}
+final <- table_5 %>% left_join(table_nodipl, key = c(puma = puma))
+
+final_1 <- final %>% left_join(table_poverty, key = c(puma = puma))
+
+
+head(final_1)
+
+
+final_1 %>% write_fst("C:/Users/aslop/Desktop/SPRING 2019/Supervised and Unsupervised Machine Learning/FINAL Project/Papers for Research/Final data sets/final_1_wide.fst") %>% 
+  write.dta("C:/Users/aslop/Desktop/SPRING 2019/Supervised and Unsupervised Machine Learning/FINAL Project/Papers for Research/Final data sets/final_1_wide.dta")
+  
+```
+
+
+
+
+
+
+
+
+
+```{r}
+table_2017 <- table_3 %>% 
+  filter(year == 2017) 
+```
+
+```{r}
+table_2010 <- table_3 %>% 
+  filter(year == 2010)
+```
+
+
+
+
+
+```{r}
+
+table_3 %>% 
+  filter(year == 2017) %>% 
+  ggplot(aes(x = below_pover, y = diversion_rate_total)) + geom_point()
+```
+
+```{r}
+table_3 %>% 
+  filter(year == 2010) %>% 
+  ggplot(aes(x = below_pover, y = diversion_rate_total)) + geom_point()
+```
+
+
+
+```{r}
+table_3 %>% 
+  filter(year == 2017) %>% 
+  ggplot(aes(x = nodipl_rate, y = diversion_rate_total)) + geom_point()
+```
+```{r}
+table_3 %>% 
+  filter(year == 2010) %>% 
+  ggplot(aes(x = nodipl_rate, y = diversion_rate_total)) + geom_point()
+```
+
+```{r}
+par(mfrow=c(2,3))
+plot(density(table_2017$diversion_rate_total),main='diversion rate')
+plot(density(table_2017$nodipl_rate),main='percent with no high school diploma')
+plot(density(table_2017$below_pover),main='percent below poverty rate')
+```
+
+
+```{r}
+par(mfrow=c(2,3))
+plot(density(table_2010$diversion_rate_total),main='diversion rate')
+plot(density(table_2010$nodipl_rate),main='percent with no high school diploma')
+plot(density(table_2010$below_pover),main='percent below poverty rate')
+```
+
+
+
+```{r}
+table_3 %>% 
+  filter(year == 2017) %>% 
+  select(diversion_rate_total, nodipl_rate, below_pover) %>% 
+  pairs()
+```
+
+```{r}
+table_3 %>% 
+  filter(year == 2010) %>% 
+  select(diversion_rate_total, nodipl_rate, below_pover) %>% 
+  pairs()
+```
+
+
+```{r}
+glimpse(table_3)
+```
+
+
+``
+
+```{r}
+mcl <- Mclust(table_3[,8:10])
+```
+```{r}
+mcl$clust
+```
+
+```{r}
+mcl
+```
+
+```{r}
+plot(mcl,dim=1:3)
+```
+
+```{r}
+# plot the frame of axes
+
+table_10 <- table_3 %>% 
+  filter(puma > 4010)
+
+table_11 <- table_3 %>% 
+  filter(puma < 4010)
+
+
+plot (0, 0, type="n", xlim=c(2010, 2017), ylim=c(5, 60), main="Total Diversion Rate by PUMA 2010 2017", 
+     ylab="Diversion Rate", xlab="", las=1, lwd=2, bty="n", cex.axis=0.7)
+
+codes <- unique(table_11$puma)
+for (i in 1:length(codes)) {
+    currCountry <- subset(table_11, puma == codes[i])
+    currCountry <- currCountry[order(currCountry$year, decreasing=FALSE),]
+    lines(2010:2017, currCountry$diversion_rate_total, col="#002000")
+}
+
+
+codes <- unique(table_10$puma)
+for (i in 1:length(codes)) {
+    currCountry <- subset(table_10, puma == codes[i])
+    currCountry <- currCountry[order(currCountry$year, decreasing=FALSE),]
+    lines(2010:2017, currCountry$diversion_rate_total, col="blue")
+}
+```
+
+
+
+
+
+
+
+
+
+```{r}
+fit.nagin.re <- hlme(diversion_rate_total~year+I(year^2),
+                     mixture=~year+I(year^2), 
+                     classmb=~1, random=~1,subject='puma',ng=3, 
+                     data=table_3)
+```
+
+
+
+```{r}
+fit.nagin.re
+```
+
+
+```{r}
+postprob(fit.nagin.re)
+```
+
+
+
+```{r}
+n <- fit.nagin.re$pprob
+
+head(n)
+```
+
+
+
+
+```{r}
+#not elegant, but closer to Nagin:
+fit.nagin.lm <- flexmix(diversion_rate_total~year+I(year^2)|puma,k=2,
+model=list(FLXMRglm(diversion_rate_total~., family="gaussian")),data=table_3)
+print(lapply(fit.nagin.lm@components,"[[",1))
+```
+
+
+
+```{r}
+summary(fit.nagin.lm)
+```
+
+
+```{r}
+plot(fit.nagin.lm)
+```
+
+
+```{r}
+m <- clusters(fit.nagin.lm) %>%  as.data.frame()
+glimpse(m)
+```
+
+
+
+
+```{r}
+plot(fit.nagin.re,which='fit',var.time='year',legend=NULL)
+```
+

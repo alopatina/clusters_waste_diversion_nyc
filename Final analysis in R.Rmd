@@ -1,0 +1,557 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+
+```{r}
+library(tidyverse)
+require(foreign)
+require(cluster)
+require(factoextra)
+require(cluster)
+require(mclust)
+require(lcmm)
+library(flexmix)
+```
+
+WITH THE LONG DATA SET
+
+```{r}
+table_3 <- read_fst("C:/Users/aslop/Desktop/SPRING 2019/Supervised and Unsupervised Machine Learning/FINAL Project/Papers for Research/Final data sets/table_3_long.fst")
+
+
+head(table_3)
+```
+
+```{r}
+data_long <- table_3 %>% 
+  mutate(time = case_when(
+    year == 2010 ~ 1,
+    year == 2011 ~ 2,
+    year == 2012 ~ 3,
+    year == 2013 ~ 4,
+    year == 2014 ~ 5,
+    year == 2015 ~ 6,
+    year == 2016 ~ 7,
+    year == 2017 ~ 8
+  )) %>% 
+  select(year, time, puma, diversion_rate_total, below_pover, nodipl_rate, everything())
+
+
+head(data_long)
+glimpse(data_long)
+```
+
+
+```{r}
+data <- data_long %>% 
+  select(puma, boro, borough, diversion_rate_total, nodipl_rate, below_pover, year) %>% 
+  filter(year == 2017)
+
+
+glimpse(data)
+```
+
+
+
+```{r}
+fit.nagin.re_data <- fit.nagin.re$pprob
+
+fit.nagin.re_data
+
+```
+
+
+
+
+
+
+```{r}
+fit.nagin.re <- hlme(diversion_rate_total~time+I(time^2),
+                     mixture=~time+I(time^2), 
+                     classmb=~1, random=~1,subject='puma',ng=3, 
+                     data=data_long)
+
+head(fit.nagin.re, 20)
+```
+
+
+```{r}
+plot(fit.nagin.re,which='fit',var.time='time',legend=NULL)
+```
+
+'
+
+
+
+MODEL 1 -- linear model, two clustes
+###################
+
+
+```{r}
+### latent class linear mixed model with 2 classes
+
+mod_1<-hlme(diversion_rate_total~time, mixture=~time,random=~time, subject='puma',
+         ng=2,data=data_long)
+
+summary(mod_1)
+```
+
+
+```{r}
+plot(mod_1,which='fit',var.time='time',legend=NULL)
+```
+
+
+MODEL 2 -- linear model, three clustes
+
+
+```{r}
+mod_2<-hlme(diversion_rate_total~time, mixture=~time,random=~time, subject='puma',
+         ng=3,data=data_long)
+
+summary(mod_2)
+
+
+```
+
+```{r}
+plot(mod_2,which='fit',var.time='time',legend=NULL)
+```
+
+```{r}
+
+```
+
+
+
+MODEL 3 -- linear model, four clustes
+
+
+```{r}
+mod_3<-hlme(diversion_rate_total~time, mixture=~time,random=~time, subject='puma',
+         ng=4,data=data_long)
+
+summary(mod_3)
+
+
+```
+
+```{r}
+plot(mod_3,which='fit',var.time='time',legend=NULL)
+```
+
+
+MODEL  --- three clusters quadratic term
+
+```{r}
+mod_4 <- hlme(diversion_rate_total~time+I(time^2),
+                     mixture=~time+I(time^2), 
+                     classmb=~1, random=~1,subject='puma',ng=3, 
+                     data=data_long)
+
+summary(mod_4)
+```
+
+
+
+```{r}
+plot(mod_4, which='fit',var.time='time',legend=NULL)
+```
+
+
+
+MODEL 5 --- three clusters cubic term
+
+```{r}
+mod_5 <- hlme(diversion_rate_total~time+I(time^3),
+                     mixture=~time+I(time^3), 
+                     classmb=~1, random=~1,subject='puma',ng=3, 
+                     data=data_long)
+summary(mod_5)
+
+```
+
+
+```{r}
+plot(mod_5, which='fit',var.time='time',legend=NULL)
+```
+
+
+PROFILE OF THE LINEAR HLME MODEL WITH THREE CLUSTERS
+
+```{r}
+model_2_table <- mod_2$pprob
+
+data_mod2 <- model_2_table %>% 
+  left_join(data, by = "puma")
+
+
+table_mod2 <- data_mod2 %>% 
+  group_by(class) %>% 
+  summarise(diver_rate = mean(diversion_rate_total),
+            nodipl_rate = mean(nodipl_rate),
+            poverty = mean(below_pover)) %>% 
+  arrange(desc(diver_rate))
+
+
+table_mod2
+```
+
+
+```{r}
+table_mod2 <- data_mod2 %>% 
+  group_by(class, borough) %>% 
+  summarise(count = length(borough))
+
+table_mod2 
+```
+
+
+
+
+
+
+
+
+
+
+```{r}
+model_4_table <- mod_4$pprob
+
+head(model_4_table)
+
+glimpse(model_4_table)
+```
+
+Clusters of the tree cluster quadratic model with covariates for 2017
+
+```{r}
+data_table <- model_4_table %>% 
+  left_join(data, by = "puma")
+
+glimpse(data_table)
+```
+
+
+Profile of the model 4 ( three cluster, quadratic model)
+
+```{r}
+table_1 <- data_table %>% 
+  group_by(class) %>% 
+  summarise(diver_rate = mean(diversion_rate_total),
+            nodipl_rate = mean(nodipl_rate),
+            poverty = mean(below_pover)) %>% 
+  arrange(desc(diver_rate))
+
+
+table_1
+```
+
+
+```{r}
+table_2 <- data_table %>% 
+  group_by(class, borough) %>% 
+  summarise(count = length(borough))
+
+table_2 
+  
+```
+
+TRAJ WITH THREE CLUSTERS AND QUADRATIC TERMS AND NO DIPLOME MEASUREMENT
+
+```{r}
+traj_nodipl <- read_csv("C:/Users/aslop/Desktop/SPRING 2019/Supervised and Unsupervised Machine Learning/FINAL Project/Papers for Research/Final data sets/traj_nodipl.csv")
+```
+
+```{r}
+data_nodipl <- traj_nodipl %>% 
+  select(puma, `_traj_Group`)
+
+data_nodipl <- data_nodipl %>% 
+  left_join(data, by = "puma")
+```
+
+
+
+```{r}
+table_nodipl <- data_nodipl %>% 
+  group_by(`_traj_Group`) %>% 
+  summarise(diver_rate = mean(diversion_rate_total),
+            nodipl_rate = mean(nodipl_rate),
+            poverty = mean(below_pover)) %>% 
+  arrange(desc(diver_rate))
+
+
+table_nodipl
+```
+
+
+```{r}
+table_nodipl_2 <- data_nodipl %>% 
+  group_by(`_traj_Group`, borough) %>% 
+  summarise(count = length(borough))
+
+table_nodipl_2
+```
+
+>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+
+```{r}
+traj_plot <- traj_nodipl %>% 
+  select(puma, `_traj_Group`) %>% 
+  left_join(table_3, key = "puma")
+  
+```
+
+
+```{r}
+# plot the frame of axes
+
+plot_1 <- traj_plot %>% 
+  filter(`_traj_Group` == 1)
+
+
+plot_2 <- traj_plot %>% 
+  filter(`_traj_Group` == 2)
+
+
+plot_3 <- traj_plot %>% 
+  filter(`_traj_Group` == 3)
+
+
+
+
+
+plot (0, 0, type="n", xlim=c(2010, 2017), ylim=c(5, 60), main="NYC Sub-areas waste diversion trajectories 2010 - 2017", 
+     ylab="Diversion Rate", xlab="", las=1, lwd=2, bty="n", cex.axis=0.7)
+
+codes <- unique(plot_1$puma)
+for (i in 1:length(codes)) {
+    currCountry <- subset(plot_1, puma == codes[i])
+    currCountry <- currCountry[order(currCountry$year, decreasing=FALSE),]
+    lines(2010:2017, currCountry$diversion_rate_total, col="green")
+}
+
+codes <- unique(plot_2$puma)
+for (i in 1:length(codes)) {
+    currCountry <- subset(plot_2, puma == codes[i])
+    currCountry <- currCountry[order(currCountry$year, decreasing=FALSE),]
+    lines(2010:2017, currCountry$diversion_rate_total, col="red")
+}
+
+
+codes <- unique(plot_3$puma)
+for (i in 1:length(codes)) {
+    currCountry <- subset(plot_3, puma == codes[i])
+    currCountry <- currCountry[order(currCountry$year, decreasing=FALSE),]
+    lines(2010:2017, currCountry$diversion_rate_total, col="blue")
+}
+```
+
+
+
+
+
+
+
+
+Comparing to the three model quadratic model with traj
+
+
+```{r}
+traj_quad_stata <- read_csv("C:/Users/aslop/Desktop/SPRING 2019/Supervised and Unsupervised Machine Learning/FINAL Project/Papers for Research/Final data sets/traj_quad_stata.csv")
+```
+
+```{r}
+data_traj <- traj_quad_stata %>% 
+  select(puma, `_traj_Group`)
+
+data_traj <- data_traj %>% 
+  left_join(data, by = "puma")
+
+```
+
+
+```{r}
+table_traj <- data_traj %>% 
+  group_by(`_traj_Group`) %>% 
+  summarise(diver_rate = mean(diversion_rate_total),
+            nodipl_rate = mean(nodipl_rate),
+            poverty = mean(below_pover)) %>% 
+  arrange(desc(diver_rate))
+
+
+table_traj
+```
+
+
+
+```{r}
+table_2_traj <- data_traj %>% 
+  group_by(`_traj_Group`, borough) %>% 
+  summarise(count = length(borough))
+
+table_2_traj
+```
+
+
+```{r}
+
+```
+
+
+
+
+
+
+
+
+
+
+HLME
+- heterogeneous populations (relax (iv))
+→ hlme for latent class linear mixed models (i.e. Gaussian continuous
+outcome)
+
+
+
+
+
+
+MODEL with time dependent variables - quadratic term + no diploma covariate
+
+```{r}
+mod_6 <- hlme(diversion_rate_total~time+I(time^2),
+                     mixture=~time+I(time^2), 
+                     classmb=~nodipl_rate, random=~1,subject='puma',ng=3, 
+                     data=data_long)
+
+summary(mod_6)
+
+```
+
+
+
+```{r}
+plot(mod_6, which='fit',var.time='time',legend=NULL)
+```
+
+
+
+MODEL with time dependent variables - quadratic term + no diploma covariate
+
+```{r}
+mod_7 <- hlme(diversion_rate_total~time+I(time^3),
+                     mixture=~time+I(time^3), 
+                     classmb=~nodipl_rate, random=~1,subject='puma',ng=3, 
+                     data=data_long)
+
+summary(mod_7)
+```
+
+```{r}
+plot(mod_7, which='fit',var.time='time',legend=NULL)
+```
+
+
+
+
+
+
+```{r}
+mod_8 <- hlme(diversion_rate_total~time+I(time^2),
+                     mixture=~time+I(time^2), 
+                     classmb=~below_pover, random=~1,subject='puma',ng=3, 
+                     data=data_long)
+
+summary(mod_8)
+```
+
+```{r}
+plot(mod_8, which='fit',var.time='time',legend=NULL)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+USING FLEXMIX
+
+```{r}
+p <- flexmix(diversion_rate_total ~ time | puma, k=2,
+             model=FLXMRglm(family="gaussian"),
+             data=data_long)
+
+summary(p)
+```
+
+```{r}
+prior(p)
+```
+
+```{r}
+parameters(p)
+```
+
+
+```{r}
+ # Extract each component
+comp_1 <- parameters(p, component=1)
+comp_2 <- parameters(p, component=2)
+```
+
+
+```{r}
+# Extract the means
+mean_comp_1 <- comp_1[1:2]
+mean_comp_2 <- comp_2[1:2]
+```
+
+
+
+```{r}
+ # Extract the covariance matrices
+covariance_comp_1 <- matrix(comp_1[3:3], nrow=2)
+covariance_comp_2 <- matrix(comp_2[3:6], nrow=2)
+covariance_comp_1
+```
+
+```{r}
+clusters(p)
+```
+
+
+Bivariate distribution
+
+```{r}
+p2 <- flexmix(cbind(diversion_rate_total, below_pover) ~ time | puma, k=2,
+             model=FLXMCmvnorm(diag = TRUE),
+             data=data_long)
+
+# gives the proportions of each cluster
+prior(p2)
+```
+
+```{r}
+# two first rows - means and the covariance matrices formed by the following 4 values
+parameters((p2))
+```
+
